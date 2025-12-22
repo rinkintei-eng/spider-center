@@ -106,7 +106,7 @@
             const CONTROL_WEBHOOK_URL = "https://ez2.zeabur.app/webhook/b899c52d-09c0-49b2-8e84-ad818ab7b8b5";
 
             const API_KEY = "yHEgVMncPY1p5oVLkJPfXQEPFPB3tQcAEKJcAMnFjv6sMTVtRPiEQzfkiU2uFimJRNsDaL3jEDxqnA3bMAszv9KqM0ns0cUJpLq0";
-            // ✅ 更新為新的 LIFF ID
+            // ✅ LIFF ID
             const LIFF_ID = "2008745394-ZtBvDo4C"; 
             
             // ✅ 預設開啟 LIFF 模式
@@ -213,6 +213,9 @@
                 setStatusMessage('🚀 指令發送中...');
                 setStatusColor('text-blue-300');
                 
+                // 🔥 立即開始讀秒與輪詢
+                startPolling();
+
                 try {
                     // 準備 Payload，包含 action 與 userId
                     const payload = { 
@@ -234,17 +237,20 @@
                         throw new Error(`啟動失敗: ${response.status} ${response.statusText}`);
                     }
                     
-                    setStatusMessage('✅ 指令已送出，等待回應...');
-                    setStatusColor('text-emerald-300');
+                    // 🔥 請求成功回傳後，立即停止計時
+                    finishCrawler();
 
-                    // 啟動後開始計時與輪詢
-                    startPolling();
+                    setStatusMessage('✅ 指令已送出');
+                    setStatusColor('text-emerald-300');
+                    
+                    // 最後更新一次日誌
+                    fetchCrawlerLogs();
                     
                 } catch (err) {
                     console.error("Trigger Error:", err);
                     setStatusMessage(`❌ 錯誤: ${err.message === 'Failed to fetch' ? '連線被拒 (CORS/網路)' : err.message}`);
                     setStatusColor('text-red-400');
-                    setCrawlStatus('idle');
+                    finishCrawler(); // 錯誤也停止
                 } finally {
                     setLoading(false);
                 }
@@ -286,14 +292,6 @@
                             setStatusMessage(formattedLogs[0].message);
                             setStatusColor('text-white');
                         }
-                        
-                        // 自動判斷是否完成
-                        if (formattedLogs.length > 0) {
-                            const latestLog = formattedLogs[0];
-                            if (latestLog.message.includes("完畢") || latestLog.message.includes("結束")) {
-                                if (crawlStatus === 'running') finishCrawler();
-                            }
-                        }
                     }
                 } catch (err) {
                     console.error("Fetch Logs Error", err);
@@ -308,12 +306,19 @@
             };
 
             const startPolling = () => {
+                // 清除舊的 (防呆)
+                if (timerRef.current) clearInterval(timerRef.current);
+                if (pollingRef.current) clearInterval(pollingRef.current);
+
                 startTimeRef.current = Date.now();
                 setCrawlTime(0);
+                
+                // 啟動計時器 (每 100ms 更新)
                 timerRef.current = setInterval(() => {
                     setCrawlTime((Date.now() - startTimeRef.current) / 1000);
                 }, 100);
 
+                // 啟動輪詢日誌 (每 2000ms 更新)
                 fetchCrawlerLogs();
                 pollingRef.current = setInterval(fetchCrawlerLogs, 2000);
             };
