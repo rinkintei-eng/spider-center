@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OPEN桑 營運中樞</title>
+    <title>OPEN桑 爬蟲中心</title>
     
     <!-- 1. 載入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -240,7 +240,7 @@
                     // 🔥 請求成功回傳後，立即停止計時
                     finishCrawler();
 
-                    setStatusMessage('✅ 指令已送出');
+                    setStatusMessage('✅ 指令已完成');
                     setStatusColor('text-emerald-300');
                     
                     // 最後更新一次日誌
@@ -355,9 +355,9 @@
                         <div className="bg-slate-900 text-white p-6 pb-8 rounded-b-[2.5rem] shadow-lg z-10 sticky top-0">
                             <div className="flex justify-between items-center mb-4">
                                 <div>
-                                    <span className="text-slate-400 text-xs font-bold tracking-widest uppercase">Open-san Dashboard</span>
+                                    <span className="text-slate-400 text-xs font-bold tracking-widest uppercase">北海道OPEN桑 Dashboard</span>
                                     <h1 className="text-xl font-bold flex items-center gap-2 mt-1">
-                                        爬蟲監控中樞
+                                        爬蟲監控中心
                                         <div className={`w-2 h-2 rounded-full ${loading || crawlStatus === 'running' ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'}`}></div>
                                     </h1>
                                 </div>
@@ -411,11 +411,11 @@
                                                 </div>
                                                 <div className="mt-3 flex gap-4 border-t border-slate-50 pt-3">
                                                     <div>
-                                                        <p className="text-[10px] text-slate-400 font-bold uppercase">目標數量</p>
+                                                        <p className="text-[10px] text-slate-400 font-bold uppercase">尚未開放數量</p>
                                                         <p className="text-sm font-bold text-indigo-600">{crawlStats.target_count.toLocaleString()}</p>
                                                     </div>
                                                     <div>
-                                                        <p className="text-[10px] text-slate-400 font-bold uppercase">總樣本</p>
+                                                        <p className="text-[10px] text-slate-400 font-bold uppercase">總數量</p>
                                                         <p className="text-sm font-bold text-slate-600">{crawlStats.denominator.toLocaleString()}</p>
                                                     </div>
                                                 </div>
@@ -558,3 +558,4 @@
     </script>
 </body>
 </html>
+
