@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OPEN桑 爬蟲中心</title>
+    <title>OPEN桑 營運中樞</title>
     
     <!-- 1. 載入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -94,22 +94,69 @@
         const DollarSign = (props) => <IconBase {...props}><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></IconBase>;
         const Save = (props) => <IconBase {...props}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></IconBase>;
         const AlertCircle = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></IconBase>;
+        const ChevronDown = (props) => <IconBase {...props}><path d="m6 9 6 6 6-6"/></IconBase>;
+        const Building = (props) => <IconBase {...props}><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></IconBase>;
+        const MapPin = (props) => <IconBase {...props}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></IconBase>;
+
+        // ==========================================
+        // 🔹 輔助元件：飯店清單折疊卡片
+        // ==========================================
+        const HotelListCard = ({ hotels }) => {
+            const [isOpen, setIsOpen] = useState(false);
+
+            if (!hotels || hotels.length === 0) return null;
+
+            return (
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-4 transition-all">
+                    <button
+                        onClick={() => setIsOpen(!isOpen)}
+                        className="w-full flex items-center justify-between p-4 bg-slate-50 active:bg-slate-100 transition-colors"
+                    >
+                        <div className="flex items-center gap-2 text-slate-700 font-bold text-sm">
+                            <Building size={16} className="text-indigo-500"/>
+                            <span>尚未開放飯店清單</span>
+                            <span className="bg-indigo-100 text-indigo-600 text-[10px] px-2 py-0.5 rounded-full font-mono">{hotels.length}</span>
+                        </div>
+                        <div className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} text-slate-400`}>
+                            <ChevronDown size={18} />
+                        </div>
+                    </button>
+                    {/* List Content with Smooth Transition */}
+                    <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                        <div className="overflow-y-auto max-h-[400px] p-2 space-y-2 bg-slate-50/30">
+                            {hotels.map((hotel, idx) => (
+                                <div key={idx} className="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+                                    <div className="min-w-0 pr-2">
+                                        <div className="font-bold text-sm text-slate-700 truncate">{hotel["飯店名稱"]}</div>
+                                        <div className="flex items-center gap-1 text-[10px] text-slate-400 mt-0.5">
+                                            <MapPin size={10} className="text-slate-300" />
+                                            {hotel["地區"]}
+                                            <span className="text-slate-300">|</span>
+                                            <span className="font-mono">ID: {hotel.hotel_id}</span>
+                                        </div>
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                        <div className="text-base font-extrabold text-rose-500 font-mono leading-none">{hotel["尚未開放數量"]}</div>
+                                        <div className="text-[9px] text-slate-400 mt-0.5 scale-90 origin-right">未開放</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
 
         // ==========================================
         // 🔹 主程式 App
         // ==========================================
         const App = () => {
             // ⚙️ 設定區域
-            // 日誌監控用的 Webhook
             const LOGS_WEBHOOK_URL = "https://ez2.zeabur.app/webhook/cd8e734a-9c48-4339-9ecf-cb098758e0e0"; 
-            // 控制按鈕用的 Webhook
             const CONTROL_WEBHOOK_URL = "https://ez2.zeabur.app/webhook/b899c52d-09c0-49b2-8e84-ad818ab7b8b5";
 
             const API_KEY = "yHEgVMncPY1p5oVLkJPfXQEPFPB3tQcAEKJcAMnFjv6sMTVtRPiEQzfkiU2uFimJRNsDaL3jEDxqnA3bMAszv9KqM0ns0cUJpLq0";
-            // ✅ LIFF ID
             const LIFF_ID = "2008745394-ZtBvDo4C"; 
-            
-            // ✅ 預設開啟 LIFF 模式
             const ENABLE_LIFF = true; 
 
             const [loading, setLoading] = useState(false);
@@ -125,6 +172,7 @@
             const [crawlTime, setCrawlTime] = useState(0);
             const [crawlLogs, setCrawlLogs] = useState([]);
             const [crawlStats, setCrawlStats] = useState(null);
+            const [crawlHotels, setCrawlHotels] = useState([]); // 新增：飯店清單狀態
             
             // 錯誤訊息狀態 (用於 Control Tab)
             const [statusMessage, setStatusMessage] = useState('待命');
@@ -240,7 +288,7 @@
                     // 🔥 請求成功回傳後，立即停止計時
                     finishCrawler();
 
-                    setStatusMessage('✅ 指令已完成');
+                    setStatusMessage('✅ 指令已送出');
                     setStatusColor('text-emerald-300');
                     
                     // 最後更新一次日誌
@@ -273,8 +321,12 @@
                     const rawData = await response.json();
 
                     if (Array.isArray(rawData)) {
+                        // 1. 分離日誌
                         const logs = rawData.filter(item => item.id).sort((a, b) => b.id - a.id);
+                        // 2. 分離統計
                         const stats = rawData.find(item => item.target_count !== undefined);
+                        // 3. 分離飯店清單 (檢查是否有 hotel_id 和 飯店名稱)
+                        const hotels = rawData.filter(item => item.hotel_id && item["飯店名稱"]);
 
                         const formattedLogs = logs.map(l => ({
                             id: l.id,
@@ -286,11 +338,20 @@
 
                         setCrawlLogs(formattedLogs);
                         setCrawlStats(stats);
+                        setCrawlHotels(hotels); // 更新飯店列表狀態
                         
                         // 更新 Control Tab 的狀態顯示 (顯示最新一則日誌)
                         if (formattedLogs.length > 0 && crawlStatus !== 'running') {
                             setStatusMessage(formattedLogs[0].message);
                             setStatusColor('text-white');
+                        }
+                        
+                        // 自動判斷是否完成
+                        if (formattedLogs.length > 0) {
+                            const latestLog = formattedLogs[0];
+                            if (latestLog.message.includes("完畢") || latestLog.message.includes("結束")) {
+                                if (crawlStatus === 'running') finishCrawler();
+                            }
                         }
                     }
                 } catch (err) {
@@ -306,19 +367,12 @@
             };
 
             const startPolling = () => {
-                // 清除舊的 (防呆)
-                if (timerRef.current) clearInterval(timerRef.current);
-                if (pollingRef.current) clearInterval(pollingRef.current);
-
                 startTimeRef.current = Date.now();
                 setCrawlTime(0);
-                
-                // 啟動計時器 (每 100ms 更新)
                 timerRef.current = setInterval(() => {
                     setCrawlTime((Date.now() - startTimeRef.current) / 1000);
                 }, 100);
 
-                // 啟動輪詢日誌 (每 2000ms 更新)
                 fetchCrawlerLogs();
                 pollingRef.current = setInterval(fetchCrawlerLogs, 2000);
             };
@@ -355,9 +409,9 @@
                         <div className="bg-slate-900 text-white p-6 pb-8 rounded-b-[2.5rem] shadow-lg z-10 sticky top-0">
                             <div className="flex justify-between items-center mb-4">
                                 <div>
-                                    <span className="text-slate-400 text-xs font-bold tracking-widest uppercase">北海道OPEN桑 Dashboard</span>
+                                    <span className="text-slate-400 text-xs font-bold tracking-widest uppercase">Open-san Dashboard</span>
                                     <h1 className="text-xl font-bold flex items-center gap-2 mt-1">
-                                        爬蟲監控中心
+                                        爬蟲監控中樞
                                         <div className={`w-2 h-2 rounded-full ${loading || crawlStatus === 'running' ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'}`}></div>
                                     </h1>
                                 </div>
@@ -411,11 +465,11 @@
                                                 </div>
                                                 <div className="mt-3 flex gap-4 border-t border-slate-50 pt-3">
                                                     <div>
-                                                        <p className="text-[10px] text-slate-400 font-bold uppercase">尚未開放數量</p>
+                                                        <p className="text-[10px] text-slate-400 font-bold uppercase">目標數量</p>
                                                         <p className="text-sm font-bold text-indigo-600">{crawlStats.target_count.toLocaleString()}</p>
                                                     </div>
                                                     <div>
-                                                        <p className="text-[10px] text-slate-400 font-bold uppercase">總數量</p>
+                                                        <p className="text-[10px] text-slate-400 font-bold uppercase">總樣本</p>
                                                         <p className="text-sm font-bold text-slate-600">{crawlStats.denominator.toLocaleString()}</p>
                                                     </div>
                                                 </div>
@@ -423,6 +477,10 @@
                                         </div>
                                     )}
 
+                                    {/* 2. 飯店清單折疊卡片 (新增功能) */}
+                                    <HotelListCard hotels={crawlHotels} />
+
+                                    {/* 3. 日誌列表標題與刷新 */}
                                     <div className="flex justify-between items-center px-1">
                                         <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">最新執行紀錄</span>
                                         <button onClick={fetchCrawlerLogs} className="text-slate-400 hover:text-slate-600 active:scale-90 transition-transform"><RefreshCw size={14} /></button>
@@ -558,4 +616,3 @@
     </script>
 </body>
 </html>
-
