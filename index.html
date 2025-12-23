@@ -112,13 +112,13 @@
                         onClick={() => setIsOpen(!isOpen)}
                         className="w-full flex items-center justify-between p-4 bg-slate-50 active:bg-slate-100 transition-colors"
                     >
-                        <div className="flex items-center gap-2 text-slate-700 font-bold text-sm">
-                            <Building size={16} className="text-indigo-500"/>
+                        <div className="flex items-center gap-2 text-slate-700 font-bold text-base">
+                            <Building size={18} className="text-indigo-500"/>
                             <span>尚未開放飯店清單</span>
-                            <span className="bg-indigo-100 text-indigo-600 text-[10px] px-2 py-0.5 rounded-full font-mono">{hotels.length}</span>
+                            <span className="bg-indigo-100 text-indigo-600 text-xs px-2.5 py-0.5 rounded-full font-mono">{hotels.length}</span>
                         </div>
                         <div className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} text-slate-400`}>
-                            <ChevronDown size={18} />
+                            <ChevronDown size={20} />
                         </div>
                     </button>
                     {/* List Content with Smooth Transition */}
@@ -127,17 +127,17 @@
                             {hotels.map((hotel, idx) => (
                                 <div key={idx} className="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
                                     <div className="min-w-0 pr-2">
-                                        <div className="font-bold text-sm text-slate-700 truncate">{hotel["飯店名稱"]}</div>
-                                        <div className="flex items-center gap-1 text-[10px] text-slate-400 mt-0.5">
-                                            <MapPin size={10} className="text-slate-300" />
+                                        <div className="font-bold text-base text-slate-700 truncate">{hotel["飯店名稱"]}</div>
+                                        <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1">
+                                            <MapPin size={12} className="text-slate-300" />
                                             {hotel["地區"]}
                                             <span className="text-slate-300">|</span>
                                             <span className="font-mono">ID: {hotel.hotel_id}</span>
                                         </div>
                                     </div>
                                     <div className="text-right shrink-0">
-                                        <div className="text-base font-extrabold text-rose-500 font-mono leading-none">{hotel["尚未開放數量"]}</div>
-                                        <div className="text-[9px] text-slate-400 mt-0.5 scale-90 origin-right">未開放</div>
+                                        <div className="text-xl font-extrabold text-rose-500 font-mono leading-none">{hotel["尚未開放數量"]}</div>
+                                        <div className="text-[10px] text-slate-400 mt-0.5 scale-90 origin-right">未開放</div>
                                     </div>
                                 </div>
                             ))}
@@ -160,7 +160,7 @@
             const ENABLE_LIFF = true; 
 
             const [loading, setLoading] = useState(false);
-            const [activeTab, setActiveTab] = useState('monitor'); // 'monitor' (日誌) | 'control' (啟動)
+            const [activeTab, setActiveTab] = useState('monitor'); // 'monitor' | 'control'
 
             // LIFF 狀態
             const [liffError, setLiffError] = useState(null);
@@ -168,13 +168,13 @@
             const [isLiffInit, setIsLiffInit] = useState(false);
             
             // 爬蟲監控狀態
-            const [crawlStatus, setCrawlStatus] = useState('idle'); // idle, running, completed
+            const [crawlStatus, setCrawlStatus] = useState('idle');
             const [crawlTime, setCrawlTime] = useState(0);
             const [crawlLogs, setCrawlLogs] = useState([]);
             const [crawlStats, setCrawlStats] = useState(null);
-            const [crawlHotels, setCrawlHotels] = useState([]); // 新增：飯店清單狀態
+            const [crawlHotels, setCrawlHotels] = useState([]);
             
-            // 錯誤訊息狀態 (用於 Control Tab)
+            // 錯誤訊息狀態
             const [statusMessage, setStatusMessage] = useState('待命');
             const [statusColor, setStatusColor] = useState('text-slate-200');
 
@@ -186,7 +186,7 @@
             const timerRef = useRef(null);
             const startTimeRef = useRef(null);
 
-            // 定義 7 個按鈕的配置 (Action 使用 1~7 對應後端分流)
+            // 定義 7 個按鈕的配置
             const ACTION_BUTTONS = [
                 { id: 'master', label: '總開關 (執行全部)', icon: Play, action: 1, color: 'from-indigo-600 to-purple-600' },
                 { id: 'clear', label: '清空舊資料', icon: Trash2, action: 2, color: 'bg-white text-slate-600 border border-slate-200' },
@@ -229,20 +229,16 @@
                 initLiff();
             }, []);
 
-            // 初始載入日誌 & 切換分頁時同步更新
+            // 初始載入日誌
             useEffect(() => {
                 if (isLiffInit) {
                     fetchCrawlerLogs();
                 }
             }, [isLiffInit, activeTab]);
 
-            // ==========================================
-            // 🔹 爬蟲監控邏輯
-            // ==========================================
-            
-            // 處理按鈕點擊 -> 開啟 Modal
+            // ... (爬蟲邏輯部分保持不變) ...
             const handleActionClick = (btn) => {
-                if (crawlStatus === 'running') return; // 防止重複執行
+                if (crawlStatus === 'running') return;
                 setModalConfig({
                     isOpen: true,
                     title: btn.label,
@@ -250,7 +246,6 @@
                 });
             };
 
-            // 確認執行 -> 發送 API (使用 POST)
             const confirmExecution = async () => {
                 setModalConfig({ ...modalConfig, isOpen: false });
                 
@@ -261,14 +256,12 @@
                 setStatusMessage('🚀 指令發送中...');
                 setStatusColor('text-blue-300');
                 
-                // 🔥 立即開始讀秒與輪詢
                 startPolling();
 
                 try {
-                    // 準備 Payload，包含 action 與 userId
                     const payload = { 
                         action: modalConfig.action,
-                        userId: userProfile?.userId || 'unknown' // 傳送 Line User ID
+                        userId: userProfile?.userId || 'unknown'
                     };
 
                     const response = await fetch(CONTROL_WEBHOOK_URL, {
@@ -285,29 +278,25 @@
                         throw new Error(`啟動失敗: ${response.status} ${response.statusText}`);
                     }
                     
-                    // 🔥 請求成功回傳後，立即停止計時
                     finishCrawler();
 
                     setStatusMessage('✅ 指令已送出');
                     setStatusColor('text-emerald-300');
                     
-                    // 最後更新一次日誌
                     fetchCrawlerLogs();
                     
                 } catch (err) {
                     console.error("Trigger Error:", err);
                     setStatusMessage(`❌ 錯誤: ${err.message === 'Failed to fetch' ? '連線被拒 (CORS/網路)' : err.message}`);
                     setStatusColor('text-red-400');
-                    finishCrawler(); // 錯誤也停止
+                    finishCrawler();
                 } finally {
                     setLoading(false);
                 }
             };
 
-            // 獲取日誌 (使用 GET) - 使用 LOGS Webhook
             const fetchCrawlerLogs = async () => {
                 try {
-                    // 使用 GET 請求，並加入 timestamp 防止快取
                     const response = await fetch(`${LOGS_WEBHOOK_URL}?t=${new Date().getTime()}`, {
                         method: 'GET',
                         headers: { 
@@ -321,11 +310,8 @@
                     const rawData = await response.json();
 
                     if (Array.isArray(rawData)) {
-                        // 1. 分離日誌
                         const logs = rawData.filter(item => item.id).sort((a, b) => b.id - a.id);
-                        // 2. 分離統計
                         const stats = rawData.find(item => item.target_count !== undefined);
-                        // 3. 分離飯店清單 (檢查是否有 hotel_id 和 飯店名稱)
                         const hotels = rawData.filter(item => item.hotel_id && item["飯店名稱"]);
 
                         const formattedLogs = logs.map(l => ({
@@ -338,15 +324,13 @@
 
                         setCrawlLogs(formattedLogs);
                         setCrawlStats(stats);
-                        setCrawlHotels(hotels); // 更新飯店列表狀態
+                        setCrawlHotels(hotels);
                         
-                        // 更新 Control Tab 的狀態顯示 (顯示最新一則日誌)
                         if (formattedLogs.length > 0 && crawlStatus !== 'running') {
                             setStatusMessage(formattedLogs[0].message);
                             setStatusColor('text-white');
                         }
                         
-                        // 自動判斷是否完成
                         if (formattedLogs.length > 0) {
                             const latestLog = formattedLogs[0];
                             if (latestLog.message.includes("完畢") || latestLog.message.includes("結束")) {
@@ -409,107 +393,109 @@
                         <div className="bg-slate-900 text-white p-6 pb-8 rounded-b-[2.5rem] shadow-lg z-10 sticky top-0">
                             <div className="flex justify-between items-center mb-4">
                                 <div>
-                                    <span className="text-slate-400 text-xs font-bold tracking-widest uppercase">Open-san Dashboard</span>
-                                    <h1 className="text-xl font-bold flex items-center gap-2 mt-1">
+                                    <span className="text-slate-400 text-sm font-bold tracking-widest uppercase">Open-san Dashboard</span>
+                                    <h1 className="text-2xl font-bold flex items-center gap-2 mt-1">
                                         爬蟲監控中樞
-                                        <div className={`w-2 h-2 rounded-full ${loading || crawlStatus === 'running' ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'}`}></div>
+                                        <div className={`w-3 h-3 rounded-full ${loading || crawlStatus === 'running' ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'}`}></div>
                                     </h1>
                                 </div>
-                                <div className="w-9 h-9 rounded-full border border-slate-600 overflow-hidden bg-slate-800">
-                                    {userProfile?.pictureUrl ? <img src={userProfile.pictureUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><User size={18}/></div>}
+                                <div className="w-10 h-10 rounded-full border-2 border-slate-600 overflow-hidden bg-slate-800">
+                                    {userProfile?.pictureUrl ? <img src={userProfile.pictureUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><User size={20}/></div>}
                                 </div>
                             </div>
 
                             {/* Tabs Navigation */}
                             <div className="flex p-1 bg-slate-800 rounded-xl">
-                                <button onClick={() => setActiveTab('monitor')} className={`flex-1 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'monitor' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>
-                                    <FileText size={16} /> 監控日誌
+                                <button onClick={() => setActiveTab('monitor')} className={`flex-1 py-3 rounded-lg text-base font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'monitor' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>
+                                    <FileText size={18} /> 監控日誌
                                 </button>
-                                <button onClick={() => setActiveTab('control')} className={`flex-1 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'control' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>
-                                    <Play size={16} /> 啟動任務
+                                <button onClick={() => setActiveTab('control')} className={`flex-1 py-3 rounded-lg text-base font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'control' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>
+                                    <Play size={18} /> 啟動任務
                                 </button>
                             </div>
                         </div>
 
-                        {/* Content Area - 修正 Padding */}
+                        {/* Content Area */}
                         <div className="px-5 pt-10 pb-20 -mt-6 z-0">
                             
                             {/* 錯誤訊息 */}
                             {(liffError) && (
-                                <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-xs rounded-r flex items-center gap-2">
-                                    <WifiOff size={16} />
+                                <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded-r flex items-center gap-2">
+                                    <WifiOff size={18} />
                                     <span>{liffError}</span>
                                 </div>
                             )}
 
                             {/* === TAB 1: 監控日誌 (Monitor) === */}
                             {activeTab === 'monitor' && (
-                                <div className="animate-fade-in space-y-4">
+                                <div className="animate-fade-in space-y-5">
                                     
                                     {/* 1. 統計摘要卡片 (Stats Summary) */}
                                     {crawlStats && (
-                                        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden mb-2">
+                                        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden mb-2">
                                             <div className="absolute top-0 right-0 p-3 opacity-5 pointer-events-none">
-                                                <PieChart size={80} />
+                                                <PieChart size={100} />
                                             </div>
                                             <div className="relative z-10">
                                                 <div className="flex justify-between items-center mb-2">
-                                                    <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">本次執行結果</span>
-                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${crawlStats.ratio < 0.05 ? 'bg-emerald-100 text-emerald-600' : 'bg-yellow-100 text-yellow-600'}`}>
+                                                    <span className="text-slate-500 text-sm font-bold uppercase tracking-wider">本次執行結果</span>
+                                                    <span className={`px-2.5 py-1 rounded text-xs font-bold ${crawlStats.ratio < 0.05 ? 'bg-emerald-100 text-emerald-600' : 'bg-yellow-100 text-yellow-600'}`}>
                                                         {crawlStats.ratio < 0.05 ? '健康' : '偏高'}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-baseline gap-2">
-                                                    <span className="text-3xl font-bold text-slate-800">{crawlStats.percentage}</span>
-                                                    <span className="text-xs text-slate-400">尚未開放</span>
+                                                    <span className="text-4xl font-extrabold text-slate-800 tracking-tight">{crawlStats.percentage}</span>
+                                                    <span className="text-sm text-slate-400 font-medium">尚未開放</span>
                                                 </div>
-                                                <div className="mt-3 flex gap-4 border-t border-slate-50 pt-3">
+                                                <div className="mt-4 flex gap-6 border-t border-slate-50 pt-4">
                                                     <div>
-                                                        <p className="text-[10px] text-slate-400 font-bold uppercase">目標數量</p>
-                                                        <p className="text-sm font-bold text-indigo-600">{crawlStats.target_count.toLocaleString()}</p>
+                                                        <p className="text-xs text-slate-400 font-bold uppercase mb-0.5">目標數量</p>
+                                                        <p className="text-lg font-bold text-indigo-600">{crawlStats.target_count.toLocaleString()}</p>
                                                     </div>
                                                     <div>
-                                                        <p className="text-[10px] text-slate-400 font-bold uppercase">總樣本</p>
-                                                        <p className="text-sm font-bold text-slate-600">{crawlStats.denominator.toLocaleString()}</p>
+                                                        <p className="text-xs text-slate-400 font-bold uppercase mb-0.5">總樣本</p>
+                                                        <p className="text-lg font-bold text-slate-600">{crawlStats.denominator.toLocaleString()}</p>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     )}
 
-                                    {/* 2. 飯店清單折疊卡片 (新增功能) */}
+                                    {/* 2. 飯店清單折疊卡片 */}
                                     <HotelListCard hotels={crawlHotels} />
 
                                     {/* 3. 日誌列表標題與刷新 */}
-                                    <div className="flex justify-between items-center px-1">
-                                        <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">最新執行紀錄</span>
-                                        <button onClick={fetchCrawlerLogs} className="text-slate-400 hover:text-slate-600 active:scale-90 transition-transform"><RefreshCw size={14} /></button>
+                                    <div className="flex justify-between items-center px-1 pt-2">
+                                        <span className="text-slate-500 text-sm font-bold uppercase tracking-wider">最新執行紀錄</span>
+                                        <button onClick={fetchCrawlerLogs} className="text-slate-400 hover:text-slate-600 active:scale-90 transition-transform p-1"><RefreshCw size={18} /></button>
                                     </div>
 
                                     {crawlLogs.length === 0 ? (
-                                        <div className="text-center py-12 text-slate-300 bg-white rounded-2xl border border-slate-200 border-dashed">
-                                            <Bug size={32} className="mx-auto mb-2 opacity-50" />
-                                            <p className="text-xs">尚無紀錄</p>
+                                        <div className="text-center py-16 text-slate-300 bg-white rounded-3xl border border-slate-200 border-dashed">
+                                            <Bug size={40} className="mx-auto mb-3 opacity-50" />
+                                            <p className="text-sm">尚無紀錄</p>
                                         </div>
                                     ) : (
-                                        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                                        <div className="space-y-4"> {/* Card-ified Logs Container */}
                                             {crawlLogs.map((log) => (
-                                                <div key={log.id} className="p-4 border-b border-slate-50 last:border-0 flex items-start gap-3">
-                                                    <div className={`w-2.5 h-2.5 mt-2 rounded-full shrink-0 ${
+                                                <div key={log.id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4 transition-all hover:shadow-md">
+                                                    <div className={`w-3 h-3 mt-2 rounded-full shrink-0 ${
                                                         log.status === 'success' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 
                                                         log.status === 'start' ? 'bg-blue-400' : 
                                                         log.status === 'warning' ? 'bg-red-400' : 'bg-slate-300'
                                                     }`}></div>
                                                     <div className="flex-1 min-w-0">
-                                                        <div className="flex justify-between items-start mb-1">
-                                                            <p className={`text-base font-bold leading-tight ${
+                                                        <div className="flex justify-between items-start mb-1.5">
+                                                            <p className={`text-lg font-bold leading-tight ${
                                                                 log.status === 'success' ? 'text-emerald-700' : 
                                                                 log.status === 'start' ? 'text-blue-700' : 
                                                                 log.status === 'warning' ? 'text-red-700' : 'text-slate-700'
                                                             }`}>{log.message}</p>
-                                                            <span className="text-xs text-slate-500 font-mono bg-slate-100 px-2 py-1 rounded ml-2 shrink-0">{log.time}</span>
                                                         </div>
-                                                        <p className="text-xs text-slate-400 font-mono">ID: {log.id}</p>
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-sm text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded">{log.time}</span>
+                                                            <span className="text-sm text-slate-300 font-mono">#{log.id}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             ))}
@@ -520,16 +506,15 @@
 
                             {/* === TAB 2: 啟動任務 (Control) === */}
                             {activeTab === 'control' && (
-                                <div className="animate-fade-in space-y-6">
+                                <div className="animate-fade-in space-y-8">
                                     
                                     {/* 狀態卡片 */}
-                                    <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-lg relative overflow-hidden">
-                                        <div className="absolute -top-4 -right-4 text-slate-800 opacity-20"><Activity size={140} /></div>
+                                    <div className="bg-slate-900 text-white p-7 rounded-[2rem] shadow-xl relative overflow-hidden">
+                                        <div className="absolute -top-4 -right-4 text-slate-800 opacity-20"><Activity size={160} /></div>
                                         <div className="relative z-10 flex justify-between items-end">
                                             <div className="w-full">
-                                                <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">目前狀態</span>
-                                                {/* Modified: Display dynamic status message or error */}
-                                                <div className={`text-xl font-bold mt-2 leading-snug break-words pr-2 ${statusColor}`}>
+                                                <span className="text-slate-400 text-sm font-bold uppercase tracking-wider block mb-3">目前狀態</span>
+                                                <div className={`text-2xl font-bold leading-snug break-words pr-2 ${statusColor}`}>
                                                     {crawlStatus === 'running' ? `⏱ ${crawlTime.toFixed(1)}s` : statusMessage}
                                                 </div>
                                             </div>
@@ -537,38 +522,38 @@
                                     </div>
 
                                     {/* 按鈕群組 */}
-                                    <div className="space-y-4">
-                                        <div className="flex justify-between items-center px-1">
-                                            <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">任務控制面板</span>
+                                    <div className="space-y-5">
+                                        <div className="flex justify-between items-center px-2">
+                                            <span className="text-slate-500 text-sm font-bold uppercase tracking-wider">任務控制面板</span>
                                         </div>
 
                                         {/* 總開關 */}
                                         <button 
                                             onClick={() => handleActionClick(ACTION_BUTTONS[0])}
                                             disabled={crawlStatus === 'running'}
-                                            className={`w-full py-4 rounded-2xl font-bold text-lg text-white shadow-lg flex items-center justify-center gap-2 bg-gradient-to-r ${ACTION_BUTTONS[0].color} active:scale-95 transition-transform ${crawlStatus === 'running' ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-110'}`}
+                                            className={`w-full py-5 rounded-2xl font-bold text-xl text-white shadow-lg flex items-center justify-center gap-3 bg-gradient-to-r ${ACTION_BUTTONS[0].color} active:scale-95 transition-transform ${crawlStatus === 'running' ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-110'}`}
                                         >
-                                            <Play size={24} fill="currentColor" />
+                                            <Play size={28} fill="currentColor" />
                                             {ACTION_BUTTONS[0].label}
                                         </button>
 
                                         {/* 子任務 Grid */}
-                                        <div className="grid grid-cols-2 gap-3">
+                                        <div className="grid grid-cols-2 gap-4">
                                             {ACTION_BUTTONS.slice(1).map((btn) => (
                                                 <button
                                                     key={btn.id}
                                                     onClick={() => handleActionClick(btn)}
                                                     disabled={crawlStatus === 'running'}
-                                                    className={`p-4 rounded-2xl flex flex-col items-center justify-center gap-2 shadow-sm font-bold text-sm active:scale-95 transition-transform ${btn.color} ${crawlStatus === 'running' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50'}`}
+                                                    className={`p-5 rounded-2xl flex flex-col items-center justify-center gap-3 shadow-sm font-bold text-base active:scale-95 transition-transform ${btn.color} ${crawlStatus === 'running' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50'}`}
                                                 >
-                                                    <btn.icon size={24} className="text-slate-400" />
+                                                    <btn.icon size={28} className="text-slate-400" />
                                                     {btn.label}
                                                 </button>
                                             ))}
                                         </div>
                                     </div>
                                     
-                                    <div className="text-center text-slate-400 text-xs px-4 pb-10">
+                                    <div className="text-center text-slate-400 text-sm px-4 pb-12">
                                         <p>點擊按鈕後需確認才執行。</p>
                                     </div>
                                 </div>
@@ -578,26 +563,25 @@
 
                         {/* Confirmation Modal */}
                         {modalConfig.isOpen && (
-                            <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-                                <div className="bg-white w-full max-w-xs rounded-3xl p-6 shadow-2xl modal-content">
-                                    <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-4 mx-auto">
-                                        <AlertCircle size={28} />
+                            <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+                                <div className="bg-white w-full max-w-xs rounded-[2rem] p-7 shadow-2xl modal-content">
+                                    <div className="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-5 mx-auto">
+                                        <AlertCircle size={32} />
                                     </div>
-                                    <h3 className="text-lg font-bold text-center text-slate-800 mb-2">確認執行任務？</h3>
-                                    <p className="text-sm text-slate-500 text-center mb-6">
-                                        您即將執行 <span className="font-bold text-indigo-600">「{modalConfig.title}」</span><br/>
-                                        確定要繼續嗎？
+                                    <h3 className="text-xl font-bold text-center text-slate-800 mb-2">確認執行任務？</h3>
+                                    <p className="text-base text-slate-500 text-center mb-8 leading-relaxed">
+                                        您即將執行 <span className="font-bold text-indigo-600 block mt-1">「{modalConfig.title}」</span>
                                     </p>
-                                    <div className="flex gap-3">
+                                    <div className="flex gap-4">
                                         <button 
                                             onClick={() => setModalConfig({ ...modalConfig, isOpen: false })}
-                                            className="flex-1 py-3 rounded-xl font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors"
+                                            className="flex-1 py-3.5 rounded-xl font-bold text-base text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors"
                                         >
                                             取消
                                         </button>
                                         <button 
                                             onClick={confirmExecution}
-                                            className="flex-1 py-3 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
+                                            className="flex-1 py-3.5 rounded-xl font-bold text-base text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
                                         >
                                             確定執行
                                         </button>
