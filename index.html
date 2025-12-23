@@ -97,9 +97,10 @@
         const ChevronDown = (props) => <IconBase {...props}><path d="m6 9 6 6 6-6"/></IconBase>;
         const Building = (props) => <IconBase {...props}><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></IconBase>;
         const MapPin = (props) => <IconBase {...props}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></IconBase>;
+        const Loader2 = (props) => <IconBase {...props}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></IconBase>;
 
         // ==========================================
-        // 🔹 輔助元件：飯店清單折疊卡片
+        // 🔹 元件：飯店清單折疊卡片
         // ==========================================
         const HotelListCard = ({ hotels }) => {
             const [isOpen, setIsOpen] = useState(false);
@@ -107,40 +108,143 @@
             if (!hotels || hotels.length === 0) return null;
 
             return (
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-4 transition-all">
+                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-4 transition-shadow hover:shadow-md">
                     <button
                         onClick={() => setIsOpen(!isOpen)}
-                        className="w-full flex items-center justify-between p-4 bg-slate-50 active:bg-slate-100 transition-colors"
+                        className={`w-full flex items-center justify-between p-5 transition-colors ${isOpen ? 'bg-slate-50' : 'bg-white active:bg-slate-50'}`}
                     >
-                        <div className="flex items-center gap-2 text-slate-700 font-bold text-base">
-                            <Building size={18} className="text-indigo-500"/>
-                            <span>尚未開放飯店清單</span>
-                            <span className="bg-indigo-100 text-indigo-600 text-xs px-2.5 py-0.5 rounded-full font-mono">{hotels.length}</span>
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-xl transition-colors ${isOpen ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
+                                <Building size={20} />
+                            </div>
+                            <div className="text-left">
+                                <div className="text-base font-bold text-slate-800 flex items-center gap-2">
+                                    尚未開放飯店清單
+                                    <span className="bg-rose-100 text-rose-600 text-xs px-2 py-0.5 rounded-full font-mono font-bold">{hotels.length}</span>
+                                </div>
+                                <div className="text-xs text-slate-400 mt-0.5">點擊{isOpen ? '收合' : '展開'}詳細列表</div>
+                            </div>
                         </div>
-                        <div className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} text-slate-400`}>
-                            <ChevronDown size={20} />
+                        <div className={`transition-transform duration-300 ${isOpen ? 'rotate-180 text-indigo-500' : 'text-slate-300'}`}>
+                            <ChevronDown size={24} />
                         </div>
                     </button>
-                    {/* List Content with Smooth Transition */}
-                    <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                        <div className="overflow-y-auto max-h-[400px] p-2 space-y-2 bg-slate-50/30">
-                            {hotels.map((hotel, idx) => (
-                                <div key={idx} className="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-                                    <div className="min-w-0 pr-2">
-                                        <div className="font-bold text-base text-slate-700 truncate">{hotel["飯店名稱"]}</div>
-                                        <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1">
-                                            <MapPin size={12} className="text-slate-300" />
-                                            {hotel["地區"]}
-                                            <span className="text-slate-300">|</span>
-                                            <span className="font-mono">ID: {hotel.hotel_id}</span>
+
+                    <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                        <div className="overflow-hidden">
+                            <div className="p-4 pt-0 bg-slate-50 border-t border-slate-100">
+                                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+                                    {hotels.map((hotel, idx) => (
+                                        <div key={idx} className="flex justify-between items-center p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                                            <div className="min-w-0 pr-3">
+                                                <div className="font-bold text-base text-slate-800 truncate mb-1">{hotel["飯店名稱"]}</div>
+                                                <div className="flex items-center gap-2 text-xs text-slate-400">
+                                                    <span className="flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">
+                                                        <MapPin size={10} /> {hotel["地區"]}
+                                                    </span>
+                                                    <span className="font-mono text-slate-300">#{hotel.hotel_id}</span>
+                                                </div>
+                                            </div>
+                                            <div className="text-right shrink-0 flex flex-col items-end">
+                                                <div className="text-2xl font-black text-rose-500 font-mono leading-none">{hotel["尚未開放數量"]}</div>
+                                                <span className="text-[10px] text-rose-300 font-bold mt-1">未開放</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="text-right shrink-0">
-                                        <div className="text-xl font-extrabold text-rose-500 font-mono leading-none">{hotel["尚未開放數量"]}</div>
-                                        <div className="text-[10px] text-slate-400 mt-0.5 scale-90 origin-right">未開放</div>
-                                    </div>
+                                    ))}
                                 </div>
-                            ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 🔹 元件：日誌列表折疊卡片
+        // ==========================================
+        const LogsListCard = ({ logs, onRefresh, isLoading }) => {
+            const [isOpen, setIsOpen] = useState(true);
+
+            return (
+                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-4 transition-shadow hover:shadow-md">
+                    {/* Header */}
+                    <div
+                        onClick={() => setIsOpen(!isOpen)}
+                        className={`w-full flex items-center justify-between p-5 cursor-pointer transition-colors ${isOpen ? 'bg-slate-50' : 'bg-white active:bg-slate-50'}`}
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-xl transition-colors ${isOpen ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
+                                <FileText size={20} />
+                            </div>
+                            <div className="text-left">
+                                <div className="text-base font-bold text-slate-800 flex items-center gap-2">
+                                    最新執行紀錄
+                                    <span className="bg-indigo-100 text-indigo-600 text-xs px-2 py-0.5 rounded-full font-mono font-bold">{logs.length}</span>
+                                </div>
+                                <div className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
+                                    {isLoading ? <span className="text-indigo-500 font-bold animate-pulse">資料更新中...</span> : <span>點擊{isOpen ? '收合' : '展開'}紀錄</span>}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                             <button 
+                                onClick={(e) => { e.stopPropagation(); onRefresh(); }} 
+                                disabled={isLoading}
+                                className={`p-2 rounded-full transition-all ${isLoading ? 'bg-indigo-50 text-indigo-600' : 'text-slate-400 hover:text-indigo-600 hover:bg-slate-200 active:scale-90'}`}
+                            >
+                                <RefreshCw size={22} className={isLoading ? "animate-spin" : ""} />
+                            </button>
+                            <div className={`transition-transform duration-300 ${isOpen ? 'rotate-180 text-indigo-500' : 'text-slate-300'}`}>
+                                <ChevronDown size={24} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                        <div className="overflow-hidden">
+                            <div className="p-4 pt-0 bg-slate-50 border-t border-slate-100">
+                                {logs.length === 0 ? (
+                                    <div className="text-center py-16 text-slate-300">
+                                        {isLoading ? (
+                                            <div className="flex flex-col items-center">
+                                                <Loader2 size={40} className="animate-spin text-indigo-300 mb-2" />
+                                                <p className="text-sm">載入中...</p>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <Bug size={40} className="mx-auto mb-3 opacity-50" />
+                                                <p className="text-sm">尚無紀錄</p>
+                                            </>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className={`space-y-4 max-h-[600px] overflow-y-auto pr-1 transition-opacity duration-300 ${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                                        {logs.map((log) => (
+                                            <div key={log.id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4 transition-all">
+                                                <div className={`w-3 h-3 mt-2 rounded-full shrink-0 ${
+                                                    log.status === 'success' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 
+                                                    log.status === 'start' ? 'bg-blue-400' : 
+                                                    log.status === 'warning' ? 'bg-red-400' : 'bg-slate-300'
+                                                }`}></div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex justify-between items-start mb-1.5">
+                                                        <p className={`text-lg font-bold leading-tight ${
+                                                            log.status === 'success' ? 'text-emerald-700' : 
+                                                            log.status === 'start' ? 'text-blue-700' : 
+                                                            log.status === 'warning' ? 'text-red-700' : 'text-slate-700'
+                                                        }`}>{log.message}</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-sm text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded">{log.time}</span>
+                                                        <span className="text-sm text-slate-300 font-mono">#{log.id}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -159,7 +263,8 @@
             const LIFF_ID = "2008745394-ZtBvDo4C"; 
             const ENABLE_LIFF = true; 
 
-            const [loading, setLoading] = useState(false);
+            const [loading, setLoading] = useState(false); // 控制 Tab 的全局 Loading (目前較少用)
+            const [isFetchingLogs, setIsFetchingLogs] = useState(false); // 專門用於監控日誌的 Loading
             const [activeTab, setActiveTab] = useState('monitor'); // 'monitor' | 'control'
 
             // LIFF 狀態
@@ -296,6 +401,9 @@
             };
 
             const fetchCrawlerLogs = async () => {
+                if (isFetchingLogs) return; // 避免重複觸發
+                setIsFetchingLogs(true);
+                
                 try {
                     const response = await fetch(`${LOGS_WEBHOOK_URL}?t=${new Date().getTime()}`, {
                         method: 'GET',
@@ -340,6 +448,8 @@
                     }
                 } catch (err) {
                     console.error("Fetch Logs Error", err);
+                } finally {
+                    setIsFetchingLogs(false); // 結束 Loading
                 }
             };
 
@@ -433,6 +543,11 @@
                                     {/* 1. 統計摘要卡片 (Stats Summary) */}
                                     {crawlStats && (
                                         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden mb-2">
+                                            {/* 頂部載入提示 (當卡片存在且正在載入時顯示微小提示) */}
+                                            {isFetchingLogs && (
+                                                <div className="absolute top-0 left-0 w-full h-1 bg-indigo-500 animate-pulse z-20"></div>
+                                            )}
+                                            
                                             <div className="absolute top-0 right-0 p-3 opacity-5 pointer-events-none">
                                                 <PieChart size={100} />
                                             </div>
@@ -464,43 +579,8 @@
                                     {/* 2. 飯店清單折疊卡片 */}
                                     <HotelListCard hotels={crawlHotels} />
 
-                                    {/* 3. 日誌列表標題與刷新 */}
-                                    <div className="flex justify-between items-center px-1 pt-2">
-                                        <span className="text-slate-500 text-sm font-bold uppercase tracking-wider">最新執行紀錄</span>
-                                        <button onClick={fetchCrawlerLogs} className="text-slate-400 hover:text-slate-600 active:scale-90 transition-transform p-1"><RefreshCw size={18} /></button>
-                                    </div>
-
-                                    {crawlLogs.length === 0 ? (
-                                        <div className="text-center py-16 text-slate-300 bg-white rounded-3xl border border-slate-200 border-dashed">
-                                            <Bug size={40} className="mx-auto mb-3 opacity-50" />
-                                            <p className="text-sm">尚無紀錄</p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4"> {/* Card-ified Logs Container */}
-                                            {crawlLogs.map((log) => (
-                                                <div key={log.id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4 transition-all hover:shadow-md">
-                                                    <div className={`w-3 h-3 mt-2 rounded-full shrink-0 ${
-                                                        log.status === 'success' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 
-                                                        log.status === 'start' ? 'bg-blue-400' : 
-                                                        log.status === 'warning' ? 'bg-red-400' : 'bg-slate-300'
-                                                    }`}></div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex justify-between items-start mb-1.5">
-                                                            <p className={`text-lg font-bold leading-tight ${
-                                                                log.status === 'success' ? 'text-emerald-700' : 
-                                                                log.status === 'start' ? 'text-blue-700' : 
-                                                                log.status === 'warning' ? 'text-red-700' : 'text-slate-700'
-                                                            }`}>{log.message}</p>
-                                                        </div>
-                                                        <div className="flex items-center gap-3">
-                                                            <span className="text-sm text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded">{log.time}</span>
-                                                            <span className="text-sm text-slate-300 font-mono">#{log.id}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                    {/* 3. 日誌列表折疊卡片 (新) */}
+                                    <LogsListCard logs={crawlLogs} onRefresh={fetchCrawlerLogs} isLoading={isFetchingLogs} />
                                 </div>
                             )}
 
