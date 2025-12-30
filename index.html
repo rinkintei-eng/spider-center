@@ -5,23 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>OPEN桑 爬蟲中心</title>
     
-    <!-- 1. 載入 Tailwind CSS -->
+    <!-- External Dependencies -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- 2. 載入 React 和 ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <!-- 3. 載入 Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-    <!-- 4. 載入 LINE LIFF SDK -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #e2e8f0; /* Outer Background (Desktop) */
+            background-color: #e2e8f0;
             -webkit-tap-highlight-color: transparent;
         }
         .hide-scrollbar::-webkit-scrollbar {
@@ -31,7 +25,6 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
-        /* Custom Animation */
         @keyframes pulse-ring {
             0% { transform: scale(0.33); }
             80%, 100% { opacity: 0; }
@@ -47,7 +40,6 @@
             animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
             z-index: -1;
         }
-        /* Fade In Animation */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -55,7 +47,6 @@
         .animate-fade-in {
             animation: fadeIn 0.3s ease-out forwards;
         }
-        /* Modal Animation */
         @keyframes modalPop {
             0% { opacity: 0; transform: scale(0.95); }
             100% { opacity: 1; transform: scale(1); }
@@ -71,37 +62,332 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // ==========================================
-        // 🔹 Icons Components
-        // ==========================================
+        // ============================================================================
+        // 📋 配置區域 (Configuration)
+        // ============================================================================
+        const CONFIG = {
+            // API 端點
+            LOGS_WEBHOOK_URL: "https://ez2.zeabur.app/webhook/cd8e734a-9c48-4339-9ecf-cb098758e0e0",
+            CONTROL_WEBHOOK_URL: "https://ez2.zeabur.app/webhook/b899c52d-09c0-49b2-8e84-ad818ab7b8b5",
+            
+            // 認證資訊
+            API_KEY: "yHEgVMncPY1p5oVLkJPfXQEPFPB3tQcAEKJcAMnFjv6sMTVtRPiEQzfkiU2uFimJRNsDaL3jEDxqnA3bMAszv9KqM0ns0cUJpLq0",
+            
+            // LINE LIFF 設定
+            LIFF_ID: "2008745394-ZtBvDo4C",
+            ENABLE_LIFF: true,
+            
+            // 測試用使用者資料（當 ENABLE_LIFF 為 false 時使用）
+            TEST_USER: {
+                userId: "U74612ac96b6bcf1bb5aa78ff03544fdb",
+                displayName: "測試管理員",
+                pictureUrl: null
+            },
+            
+            // 輪詢設定
+            POLLING_INTERVAL: 2000, // 2 秒
+            TIMER_INTERVAL: 100,    // 0.1 秒
+        };
+
+        // ============================================================================
+        // 🎨 圖標組件 (Icon Components)
+        // ============================================================================
+        /**
+         * 基礎圖標組件
+         * @param {number} size - 圖標大小
+         * @param {string} className - 額外的 CSS 類名
+         * @param {React.ReactNode} children - SVG 路徑元素
+         */
         const IconBase = ({ size = 24, className = "", children }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width={size} 
+                height={size} 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className={className}
+            >
                 {children}
             </svg>
         );
 
-        const RefreshCw = (props) => <IconBase {...props}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></IconBase>;
-        const WifiOff = (props) => <IconBase {...props}><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></IconBase>;
-        const User = (props) => <IconBase {...props}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></IconBase>;
-        const Bug = (props) => <IconBase {...props}><rect width="8" height="14" x="8" y="6" rx="4"/><path d="m19 7-3 2"/><path d="m5 7 3 2"/><path d="m19 19-3-2"/><path d="m5 19 3-2"/><path d="M20 13h-4"/><path d="M4 13h4"/><path d="m10 4 1 2"/><path d="m14 4-1 2"/></IconBase>;
-        const Play = (props) => <IconBase {...props}><polygon points="5 3 19 12 5 21 5 3"/></IconBase>;
-        const FileText = (props) => <IconBase {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></IconBase>;
-        const Activity = (props) => <IconBase {...props}><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></IconBase>;
-        const PieChart = (props) => <IconBase {...props}><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></IconBase>;
-        const Trash2 = (props) => <IconBase {...props}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></IconBase>;
-        const Database = (props) => <IconBase {...props}><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></IconBase>;
-        const Calculator = (props) => <IconBase {...props}><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></IconBase>;
-        const DollarSign = (props) => <IconBase {...props}><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></IconBase>;
-        const Save = (props) => <IconBase {...props}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></IconBase>;
-        const AlertCircle = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></IconBase>;
-        const ChevronDown = (props) => <IconBase {...props}><path d="m6 9 6 6 6-6"/></IconBase>;
-        const Building = (props) => <IconBase {...props}><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></IconBase>;
-        const MapPin = (props) => <IconBase {...props}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></IconBase>;
-        const Loader2 = (props) => <IconBase {...props}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></IconBase>;
+        // 圖標組件定義
+        const RefreshCw = (props) => (
+            <IconBase {...props}>
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                <path d="M21 3v5h-5"/>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                <path d="M3 21v-5h5"/>
+            </IconBase>
+        );
 
-        // ==========================================
-        // 🔹 元件：飯店清單折疊卡片
-        // ==========================================
+        const WifiOff = (props) => (
+            <IconBase {...props}>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+                <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+                <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+                <path d="M10.71 5.05A16 16 0 0 1 22.58 9"/>
+                <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                <line x1="12" y1="20" x2="12.01" y2="20"/>
+            </IconBase>
+        );
+
+        const User = (props) => (
+            <IconBase {...props}>
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+            </IconBase>
+        );
+
+        const Bug = (props) => (
+            <IconBase {...props}>
+                <rect width="8" height="14" x="8" y="6" rx="4"/>
+                <path d="m19 7-3 2"/>
+                <path d="m5 7 3 2"/>
+                <path d="m19 19-3-2"/>
+                <path d="m5 19 3-2"/>
+                <path d="M20 13h-4"/>
+                <path d="M4 13h4"/>
+                <path d="m10 4 1 2"/>
+                <path d="m14 4-1 2"/>
+            </IconBase>
+        );
+
+        const Play = (props) => (
+            <IconBase {...props}>
+                <polygon points="5 3 19 12 5 21 5 3"/>
+            </IconBase>
+        );
+
+        const FileText = (props) => (
+            <IconBase {...props}>
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                <polyline points="14 2 14 8 20 8"/>
+            </IconBase>
+        );
+
+        const Activity = (props) => (
+            <IconBase {...props}>
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </IconBase>
+        );
+
+        const PieChart = (props) => (
+            <IconBase {...props}>
+                <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
+                <path d="M22 12A10 10 0 0 0 12 2v10z"/>
+            </IconBase>
+        );
+
+        const Trash2 = (props) => (
+            <IconBase {...props}>
+                <path d="M3 6h18"/>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                <line x1="10" x2="10" y1="11" y2="17"/>
+                <line x1="14" x2="14" y1="11" y2="17"/>
+            </IconBase>
+        );
+
+        const Database = (props) => (
+            <IconBase {...props}>
+                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+            </IconBase>
+        );
+
+        const Calculator = (props) => (
+            <IconBase {...props}>
+                <rect width="16" height="20" x="4" y="2" rx="2"/>
+                <line x1="8" x2="16" y1="6" y2="6"/>
+                <line x1="16" x2="16" y1="14" y2="18"/>
+                <path d="M16 10h.01"/>
+                <path d="M12 10h.01"/>
+                <path d="M8 10h.01"/>
+                <path d="M12 14h.01"/>
+                <path d="M8 14h.01"/>
+                <path d="M12 18h.01"/>
+                <path d="M8 18h.01"/>
+            </IconBase>
+        );
+
+        const DollarSign = (props) => (
+            <IconBase {...props}>
+                <line x1="12" x2="12" y1="2" y2="22"/>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </IconBase>
+        );
+
+        const Save = (props) => (
+            <IconBase {...props}>
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/>
+                <polyline points="7 3 7 8 15 8"/>
+            </IconBase>
+        );
+
+        const AlertCircle = (props) => (
+            <IconBase {...props}>
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" x2="12" y1="8" y2="12"/>
+                <line x1="12" x2="12.01" y1="16" y2="16"/>
+            </IconBase>
+        );
+
+        const ChevronDown = (props) => (
+            <IconBase {...props}>
+                <path d="m6 9 6 6 6-6"/>
+            </IconBase>
+        );
+
+        const Building = (props) => (
+            <IconBase {...props}>
+                <rect width="16" height="20" x="4" y="2" rx="2" ry="2"/>
+                <path d="M9 22v-4h6v4"/>
+                <path d="M8 6h.01"/>
+                <path d="M16 6h.01"/>
+                <path d="M12 6h.01"/>
+                <path d="M12 10h.01"/>
+                <path d="M12 14h.01"/>
+                <path d="M16 10h.01"/>
+                <path d="M16 14h.01"/>
+                <path d="M8 10h.01"/>
+                <path d="M8 14h.01"/>
+            </IconBase>
+        );
+
+        const MapPin = (props) => (
+            <IconBase {...props}>
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                <circle cx="12" cy="10" r="3"/>
+            </IconBase>
+        );
+
+        const Loader2 = (props) => (
+            <IconBase {...props}>
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+            </IconBase>
+        );
+
+        // ============================================================================
+        // 🛠️ 工具函數 (Utility Functions)
+        // ============================================================================
+        /**
+         * 從日誌訊息中判斷狀態類型
+         * @param {string} msg - 日誌訊息
+         * @returns {string} 狀態類型 ('start' | 'success' | 'warning' | 'info')
+         */
+        const getStatusFromMsg = (msg) => {
+            if (msg.includes("開始")) return "start";
+            if (msg.includes("結束") || msg.includes("完畢")) return "success";
+            if (msg.includes("清空")) return "warning";
+            return "info";
+        };
+
+        /**
+         * 格式化日誌資料
+         * @param {Array} rawData - 原始資料陣列
+         * @returns {Object} 格式化後的資料 { logs, stats, hotels }
+         */
+        const formatLogData = (rawData) => {
+            if (!Array.isArray(rawData)) return { logs: [], stats: null, hotels: [] };
+
+            const logs = rawData
+                .filter(item => item.id)
+                .sort((a, b) => b.id - a.id)
+                .map(l => ({
+                    id: l.id,
+                    source: "n8n Crawler",
+                    message: l.msg,
+                    status: getStatusFromMsg(l.msg),
+                    time: l.time.split(' ')[1] || l.time
+                }));
+
+            const stats = rawData.find(item => item.target_count !== undefined);
+            const hotels = rawData.filter(item => item.hotel_id && item["飯店名稱"]);
+
+            return { logs, stats, hotels };
+        };
+
+        /**
+         * 建立 API 請求標頭
+         * @returns {Object} 請求標頭物件
+         */
+        const createApiHeaders = () => ({
+            'X-App-only-OPEN': CONFIG.API_KEY,
+            'Content-Type': 'application/json'
+        });
+
+        // ============================================================================
+        // 🎯 任務按鈕配置 (Action Buttons Configuration)
+        // ============================================================================
+        const ACTION_BUTTONS = [
+            { 
+                id: 'master', 
+                label: '總開關 (執行全部)', 
+                icon: Play, 
+                action: 1, 
+                color: 'from-indigo-600 to-purple-600' 
+            },
+            { 
+                id: 'clear', 
+                label: '清空舊資料', 
+                icon: Trash2, 
+                action: 2, 
+                color: 'bg-white text-slate-600 border border-slate-200' 
+            },
+            { 
+                id: 'start_crawl', 
+                label: '啟動爬蟲', 
+                icon: Bug, 
+                action: 3, 
+                color: 'bg-white text-slate-600 border border-slate-200' 
+            },
+            { 
+                id: 'calc_pr', 
+                label: '計算飯店PR值', 
+                icon: Calculator, 
+                action: 4, 
+                color: 'bg-white text-slate-600 border border-slate-200' 
+            },
+            { 
+                id: 'calc_heat', 
+                label: '計算城市熱度', 
+                icon: Activity, 
+                action: 5, 
+                color: 'bg-white text-slate-600 border border-slate-200' 
+            },
+            { 
+                id: 'write_price', 
+                label: '寫入最低&最高價', 
+                icon: DollarSign, 
+                action: 6, 
+                color: 'bg-white text-slate-600 border border-slate-200' 
+            },
+            { 
+                id: 'backup', 
+                label: '啟動備份', 
+                icon: Save, 
+                action: 7, 
+                color: 'bg-white text-slate-600 border border-slate-200' 
+            },
+        ];
+
+        // ============================================================================
+        // 🧩 UI 組件 (UI Components)
+        // ============================================================================
+
+        /**
+         * 飯店清單折疊卡片組件
+         * @param {Object} props
+         * @param {Array} props.hotels - 飯店資料陣列
+         */
         const HotelListCard = ({ hotels }) => {
             const [isOpen, setIsOpen] = useState(false);
 
@@ -111,34 +397,50 @@
                 <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-4 transition-shadow hover:shadow-md">
                     <button
                         onClick={() => setIsOpen(!isOpen)}
-                        className={`w-full flex items-center justify-between p-5 transition-colors ${isOpen ? 'bg-slate-50' : 'bg-white active:bg-slate-50'}`}
+                        className={`w-full flex items-center justify-between p-5 transition-colors ${
+                            isOpen ? 'bg-slate-50' : 'bg-white active:bg-slate-50'
+                        }`}
                     >
                         <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-xl transition-colors ${isOpen ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
+                            <div className={`p-2 rounded-xl transition-colors ${
+                                isOpen ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'
+                            }`}>
                                 <Building size={20} />
                             </div>
                             <div className="text-left">
                                 <div className="text-base font-bold text-slate-800 flex items-center gap-2">
                                     尚未開放飯店清單
-                                    <span className="bg-rose-100 text-rose-600 text-xs px-2 py-0.5 rounded-full font-mono font-bold">{hotels.length}</span>
+                                    <span className="bg-rose-100 text-rose-600 text-xs px-2 py-0.5 rounded-full font-mono font-bold">
+                                        {hotels.length}
+                                    </span>
                                 </div>
-                                <div className="text-xs text-slate-400 mt-0.5">點擊{isOpen ? '收合' : '展開'}詳細列表</div>
+                                <div className="text-xs text-slate-400 mt-0.5">
+                                    點擊{isOpen ? '收合' : '展開'}詳細列表
+                                </div>
                             </div>
                         </div>
-                        <div className={`transition-transform duration-300 ${isOpen ? 'rotate-180 text-indigo-500' : 'text-slate-300'}`}>
+                        <div className={`transition-transform duration-300 ${
+                            isOpen ? 'rotate-180 text-indigo-500' : 'text-slate-300'
+                        }`}>
                             <ChevronDown size={24} />
                         </div>
                     </button>
 
-                    <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                    <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${
+                        isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+                    }`}>
                         <div className="overflow-hidden">
-                            {/* 移除 max-height 和 overflow-y-auto，讓內容完整呈現，使用頁面捲軸 */}
                             <div className="p-4 pt-0 bg-slate-50 border-t border-slate-100">
-                                <div className="space-y-3 pr-1"> 
+                                <div className="space-y-3 pr-1">
                                     {hotels.map((hotel, idx) => (
-                                        <div key={idx} className="flex justify-between items-center p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                                        <div 
+                                            key={idx} 
+                                            className="flex justify-between items-center p-4 bg-white border border-slate-100 rounded-2xl shadow-sm"
+                                        >
                                             <div className="min-w-0 pr-3">
-                                                <div className="font-bold text-base text-slate-800 truncate mb-1">{hotel["飯店名稱"]}</div>
+                                                <div className="font-bold text-base text-slate-800 truncate mb-1">
+                                                    {hotel["飯店名稱"]}
+                                                </div>
                                                 <div className="flex items-center gap-2 text-xs text-slate-400">
                                                     <span className="flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">
                                                         <MapPin size={10} /> {hotel["地區"]}
@@ -147,7 +449,9 @@
                                                 </div>
                                             </div>
                                             <div className="text-right shrink-0 flex flex-col items-end">
-                                                <div className="text-2xl font-black text-rose-500 font-mono leading-none">{hotel["尚未開放數量"]}</div>
+                                                <div className="text-2xl font-black text-rose-500 font-mono leading-none">
+                                                    {hotel["尚未開放數量"]}
+                                                </div>
                                                 <span className="text-[10px] text-rose-300 font-bold mt-1">未開放</span>
                                             </div>
                                         </div>
@@ -160,49 +464,96 @@
             );
         };
 
-        // ==========================================
-        // 🔹 元件：日誌列表折疊卡片
-        // ==========================================
+        /**
+         * 日誌列表折疊卡片組件
+         * @param {Object} props
+         * @param {Array} props.logs - 日誌資料陣列
+         * @param {Function} props.onRefresh - 重新整理回調函數
+         * @param {boolean} props.isLoading - 載入狀態
+         */
         const LogsListCard = ({ logs, onRefresh, isLoading }) => {
             const [isOpen, setIsOpen] = useState(true);
+
+            const getStatusStyles = (status) => {
+                const styles = {
+                    success: {
+                        dot: 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]',
+                        text: 'text-emerald-700'
+                    },
+                    start: {
+                        dot: 'bg-blue-400',
+                        text: 'text-blue-700'
+                    },
+                    warning: {
+                        dot: 'bg-red-400',
+                        text: 'text-red-700'
+                    },
+                    info: {
+                        dot: 'bg-slate-300',
+                        text: 'text-slate-700'
+                    }
+                };
+                return styles[status] || styles.info;
+            };
 
             return (
                 <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-4 transition-shadow hover:shadow-md">
                     {/* Header */}
                     <div
                         onClick={() => setIsOpen(!isOpen)}
-                        className={`w-full flex items-center justify-between p-5 cursor-pointer transition-colors ${isOpen ? 'bg-slate-50' : 'bg-white active:bg-slate-50'}`}
+                        className={`w-full flex items-center justify-between p-5 cursor-pointer transition-colors ${
+                            isOpen ? 'bg-slate-50' : 'bg-white active:bg-slate-50'
+                        }`}
                     >
                         <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-xl transition-colors ${isOpen ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
+                            <div className={`p-2 rounded-xl transition-colors ${
+                                isOpen ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'
+                            }`}>
                                 <FileText size={20} />
                             </div>
                             <div className="text-left">
                                 <div className="text-base font-bold text-slate-800 flex items-center gap-2">
                                     最新執行紀錄
-                                    <span className="bg-indigo-100 text-indigo-600 text-xs px-2 py-0.5 rounded-full font-mono font-bold">{logs.length}</span>
+                                    <span className="bg-indigo-100 text-indigo-600 text-xs px-2 py-0.5 rounded-full font-mono font-bold">
+                                        {logs.length}
+                                    </span>
                                 </div>
                                 <div className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
-                                    {isLoading ? <span className="text-indigo-500 font-bold animate-pulse">資料更新中...</span> : <span>點擊{isOpen ? '收合' : '展開'}紀錄</span>}
+                                    {isLoading ? (
+                                        <span className="text-indigo-500 font-bold animate-pulse">資料更新中...</span>
+                                    ) : (
+                                        <span>點擊{isOpen ? '收合' : '展開'}紀錄</span>
+                                    )}
                                 </div>
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
-                             <button 
-                                onClick={(e) => { e.stopPropagation(); onRefresh(); }} 
+                            <button 
+                                onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    onRefresh(); 
+                                }} 
                                 disabled={isLoading}
-                                className={`p-2 rounded-full transition-all ${isLoading ? 'bg-indigo-50 text-indigo-600' : 'text-slate-400 hover:text-indigo-600 hover:bg-slate-200 active:scale-90'}`}
+                                className={`p-2 rounded-full transition-all ${
+                                    isLoading 
+                                        ? 'bg-indigo-50 text-indigo-600' 
+                                        : 'text-slate-400 hover:text-indigo-600 hover:bg-slate-200 active:scale-90'
+                                }`}
                             >
                                 <RefreshCw size={22} className={isLoading ? "animate-spin" : ""} />
                             </button>
-                            <div className={`transition-transform duration-300 ${isOpen ? 'rotate-180 text-indigo-500' : 'text-slate-300'}`}>
+                            <div className={`transition-transform duration-300 ${
+                                isOpen ? 'rotate-180 text-indigo-500' : 'text-slate-300'
+                            }`}>
                                 <ChevronDown size={24} />
                             </div>
                         </div>
                     </div>
 
                     {/* Content */}
-                    <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                    <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${
+                        isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+                    }`}>
                         <div className="overflow-hidden">
                             <div className="p-4 pt-0 bg-slate-50 border-t border-slate-100">
                                 {logs.length === 0 ? (
@@ -220,30 +571,33 @@
                                         )}
                                     </div>
                                 ) : (
-                                    /* 移除 max-height 和 overflow-y-auto */
-                                    <div className={`space-y-4 pr-1 transition-opacity duration-300 ${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-                                        {logs.map((log) => (
-                                            <div key={log.id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4 transition-all">
-                                                <div className={`w-3 h-3 mt-2 rounded-full shrink-0 ${
-                                                    log.status === 'success' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 
-                                                    log.status === 'start' ? 'bg-blue-400' : 
-                                                    log.status === 'warning' ? 'bg-red-400' : 'bg-slate-300'
-                                                }`}></div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex justify-between items-start mb-1.5">
-                                                        <p className={`text-lg font-bold leading-tight ${
-                                                            log.status === 'success' ? 'text-emerald-700' : 
-                                                            log.status === 'start' ? 'text-blue-700' : 
-                                                            log.status === 'warning' ? 'text-red-700' : 'text-slate-700'
-                                                        }`}>{log.message}</p>
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="text-sm text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded">{log.time}</span>
-                                                        <span className="text-sm text-slate-300 font-mono">#{log.id}</span>
+                                    <div className={`space-y-4 pr-1 transition-opacity duration-300 ${
+                                        isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'
+                                    }`}>
+                                        {logs.map((log) => {
+                                            const statusStyles = getStatusStyles(log.status);
+                                            return (
+                                                <div 
+                                                    key={log.id} 
+                                                    className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4 transition-all"
+                                                >
+                                                    <div className={`w-3 h-3 mt-2 rounded-full shrink-0 ${statusStyles.dot}`}></div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex justify-between items-start mb-1.5">
+                                                            <p className={`text-lg font-bold leading-tight ${statusStyles.text}`}>
+                                                                {log.message}
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-sm text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded">
+                                                                {log.time}
+                                                            </span>
+                                                            <span className="text-sm text-slate-300 font-mono">#{log.id}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
@@ -253,97 +607,326 @@
             );
         };
 
-        // ==========================================
-        // 🔹 主程式 App
-        // ==========================================
+        /**
+         * 確認對話框組件
+         * @param {Object} props
+         * @param {boolean} props.isOpen - 是否顯示
+         * @param {string} props.title - 任務標題
+         * @param {Function} props.onConfirm - 確認回調
+         * @param {Function} props.onCancel - 取消回調
+         */
+        const ConfirmationModal = ({ isOpen, title, onConfirm, onCancel }) => {
+            if (!isOpen) return null;
+
+            return (
+                <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white w-full max-w-xs rounded-[2rem] p-7 shadow-2xl modal-content">
+                        <div className="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-5 mx-auto">
+                            <AlertCircle size={32} />
+                        </div>
+                        <h3 className="text-xl font-bold text-center text-slate-800 mb-2">確認執行任務？</h3>
+                        <p className="text-base text-slate-500 text-center mb-8 leading-relaxed">
+                            您即將執行 <span className="font-bold text-indigo-600 block mt-1">「{title}」</span>
+                        </p>
+                        <div className="flex gap-4">
+                            <button 
+                                onClick={onCancel}
+                                className="flex-1 py-3.5 rounded-xl font-bold text-base text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors"
+                            >
+                                取消
+                            </button>
+                            <button 
+                                onClick={onConfirm}
+                                className="flex-1 py-3.5 rounded-xl font-bold text-base text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
+                            >
+                                確定執行
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        /**
+         * 統計摘要卡片組件
+         * @param {Object} props
+         * @param {Object} props.stats - 統計資料
+         * @param {boolean} props.isLoading - 載入狀態
+         */
+        const StatsSummaryCard = ({ stats, isLoading }) => {
+            if (!stats) return null;
+
+            return (
+                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden mb-2">
+                    {isLoading && (
+                        <div className="absolute top-0 left-0 w-full h-1 bg-indigo-500 animate-pulse z-20"></div>
+                    )}
+                    <div className="absolute top-0 right-0 p-3 opacity-5 pointer-events-none">
+                        <PieChart size={100} />
+                    </div>
+                    <div className="relative z-10">
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-slate-500 text-sm font-bold uppercase tracking-wider">
+                                本次爬蟲結果
+                            </span>
+                            <span className={`px-2.5 py-1 rounded text-xs font-bold ${
+                                stats.ratio < 0.05 
+                                    ? 'bg-emerald-100 text-emerald-600' 
+                                    : 'bg-yellow-100 text-yellow-600'
+                            }`}>
+                                {stats.ratio < 0.05 ? '健康' : '偏高'}
+                            </span>
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-4xl font-extrabold text-slate-800 tracking-tight">
+                                {stats.percentage}
+                            </span>
+                            <span className="text-sm text-slate-400 font-medium">尚未開放</span>
+                        </div>
+                        <div className="mt-4 flex gap-6 border-t border-slate-50 pt-4">
+                            <div>
+                                <p className="text-xs text-slate-400 font-bold uppercase mb-0.5">尚未開放數量</p>
+                                <p className="text-lg font-bold text-indigo-600">
+                                    {stats.target_count.toLocaleString()}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-slate-400 font-bold uppercase mb-0.5">總數量</p>
+                                <p className="text-lg font-bold text-slate-600">
+                                    {stats.denominator.toLocaleString()}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ============================================================================
+        // 🚀 主應用組件 (Main App Component)
+        // ============================================================================
         const App = () => {
-            // ⚙️ 設定區域
-            const LOGS_WEBHOOK_URL = "https://ez2.zeabur.app/webhook/cd8e734a-9c48-4339-9ecf-cb098758e0e0"; 
-            const CONTROL_WEBHOOK_URL = "https://ez2.zeabur.app/webhook/b899c52d-09c0-49b2-8e84-ad818ab7b8b5";
-
-            const API_KEY = "yHEgVMncPY1p5oVLkJPfXQEPFPB3tQcAEKJcAMnFjv6sMTVtRPiEQzfkiU2uFimJRNsDaL3jEDxqnA3bMAszv9KqM0ns0cUJpLq0";
-            const LIFF_ID = "2008745394-ZtBvDo4C"; 
-            const ENABLE_LIFF = true; 
-
+            // ========== 狀態管理 ==========
             const [loading, setLoading] = useState(false);
-            const [isFetchingLogs, setIsFetchingLogs] = useState(false); 
-            const [activeTab, setActiveTab] = useState('monitor'); 
+            const [isFetchingLogs, setIsFetchingLogs] = useState(false);
+            const [activeTab, setActiveTab] = useState('monitor');
 
             // LIFF 狀態
             const [liffError, setLiffError] = useState(null);
             const [userProfile, setUserProfile] = useState(null);
             const [isLiffInit, setIsLiffInit] = useState(false);
-            
+
             // 爬蟲監控狀態
             const [crawlStatus, setCrawlStatus] = useState('idle');
             const [crawlTime, setCrawlTime] = useState(0);
             const [crawlLogs, setCrawlLogs] = useState([]);
             const [crawlStats, setCrawlStats] = useState(null);
             const [crawlHotels, setCrawlHotels] = useState([]);
-            
-            // 錯誤訊息狀態
+
+            // 狀態訊息
             const [statusMessage, setStatusMessage] = useState('待命');
             const [statusColor, setStatusColor] = useState('text-slate-200');
 
             // Modal 狀態
-            const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", action: null });
+            const [modalConfig, setModalConfig] = useState({ 
+                isOpen: false, 
+                title: "", 
+                action: null 
+            });
 
-            // Refs
+            // ========== Refs ==========
             const pollingRef = useRef(null);
             const timerRef = useRef(null);
             const startTimeRef = useRef(null);
 
-            // 定義 7 個按鈕的配置
-            const ACTION_BUTTONS = [
-                { id: 'master', label: '總開關 (執行全部)', icon: Play, action: 1, color: 'from-indigo-600 to-purple-600' },
-                { id: 'clear', label: '清空舊資料', icon: Trash2, action: 2, color: 'bg-white text-slate-600 border border-slate-200' },
-                { id: 'start_crawl', label: '啟動爬蟲', icon: Bug, action: 3, color: 'bg-white text-slate-600 border border-slate-200' },
-                { id: 'calc_pr', label: '計算飯店PR值', icon: Calculator, action: 4, color: 'bg-white text-slate-600 border border-slate-200' },
-                { id: 'calc_heat', label: '計算城市熱度', icon: Activity, action: 5, color: 'bg-white text-slate-600 border border-slate-200' },
-                { id: 'write_price', label: '寫入最低&最高價', icon: DollarSign, action: 6, color: 'bg-white text-slate-600 border border-slate-200' },
-                { id: 'backup', label: '啟動備份', icon: Save, action: 7, color: 'bg-white text-slate-600 border border-slate-200' },
-            ];
-
-            // 初始化 LIFF
+            // ========== LIFF 初始化 ==========
             useEffect(() => {
                 const initLiff = async () => {
-                    if (!ENABLE_LIFF) {
+                    if (!CONFIG.ENABLE_LIFF) {
                         setTimeout(() => {
-                            setUserProfile({
-                                userId: "U74612ac96b6bcf1bb5aa78ff03544fdb",
-                                displayName: "測試管理員",
-                                pictureUrl: null
-                            });
+                            setUserProfile(CONFIG.TEST_USER);
                             setIsLiffInit(true);
                         }, 300);
                         return;
                     }
 
                     try {
-                        if (!window.liff) throw new Error("LIFF SDK 未載入");
-                        await window.liff.init({ liffId: LIFF_ID });
-                        if (window.liff.isLoggedIn()) {
-                            setUserProfile(await window.liff.getProfile());
-                        } else {
-                            window.liff.isInClient() ? setLiffError("無法取得使用者資訊") : window.liff.login();
+                        if (!window.liff) {
+                            throw new Error("LIFF SDK 未載入");
                         }
+                        
+                        await window.liff.init({ liffId: CONFIG.LIFF_ID });
+                        
+                        if (window.liff.isLoggedIn()) {
+                            const profile = await window.liff.getProfile();
+                            setUserProfile(profile);
+                        } else {
+                            if (window.liff.isInClient()) {
+                                setLiffError("無法取得使用者資訊");
+                            } else {
+                                window.liff.login();
+                            }
+                        }
+                        
                         setIsLiffInit(true);
                     } catch (err) {
                         setLiffError(err.message);
                         setIsLiffInit(true);
                     }
                 };
+
                 initLiff();
             }, []);
 
-            // 初始載入日誌
+            // ========== 初始載入日誌 ==========
             useEffect(() => {
                 if (isLiffInit) {
                     fetchCrawlerLogs();
                 }
             }, [isLiffInit, activeTab]);
 
-            // ... (爬蟲邏輯部分保持不變) ...
+            // ========== 清理定時器 ==========
+            useEffect(() => {
+                return () => {
+                    if (timerRef.current) clearInterval(timerRef.current);
+                    if (pollingRef.current) clearInterval(pollingRef.current);
+                };
+            }, []);
+
+            // ========== API 請求函數 ==========
+            /**
+             * 取得爬蟲日誌資料
+             */
+            const fetchCrawlerLogs = async () => {
+                if (isFetchingLogs) return;
+                
+                setIsFetchingLogs(true);
+
+                try {
+                    const response = await fetch(
+                        `${CONFIG.LOGS_WEBHOOK_URL}?t=${new Date().getTime()}`,
+                        {
+                            method: 'GET',
+                            headers: createApiHeaders(),
+                            credentials: 'omit'
+                        }
+                    );
+
+                    if (!response.ok) {
+                        throw new Error("Fetch Logs Error");
+                    }
+
+                    const rawData = await response.json();
+                    const { logs, stats, hotels } = formatLogData(rawData);
+
+                    setCrawlLogs(logs);
+                    setCrawlStats(stats);
+                    setCrawlHotels(hotels);
+
+                    // 更新狀態訊息
+                    if (logs.length > 0 && crawlStatus !== 'running') {
+                        setStatusMessage(logs[0].message);
+                        setStatusColor('text-white');
+                    }
+
+                    // 檢查是否完成
+                    if (logs.length > 0) {
+                        const latestLog = logs[0];
+                        if (latestLog.message.includes("完畢") || latestLog.message.includes("結束")) {
+                            if (crawlStatus === 'running') {
+                                finishCrawler();
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error("Fetch Logs Error", err);
+                } finally {
+                    setIsFetchingLogs(false);
+                }
+            };
+
+            /**
+             * 執行任務
+             */
+            const confirmExecution = async () => {
+                setModalConfig({ ...modalConfig, isOpen: false });
+
+                if (crawlStatus === 'running') return;
+
+                setCrawlStatus('running');
+                setLoading(true);
+                setStatusMessage('🚀 指令發送中...');
+                setStatusColor('text-blue-300');
+
+                startPolling();
+
+                try {
+                    const payload = {
+                        action: modalConfig.action,
+                        userId: userProfile?.userId || 'unknown'
+                    };
+
+                    const response = await fetch(CONFIG.CONTROL_WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: createApiHeaders(),
+                        credentials: 'omit',
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`啟動失敗: ${response.status} ${response.statusText}`);
+                    }
+
+                    finishCrawler();
+                    setStatusMessage('✅ 指令已送出');
+                    setStatusColor('text-emerald-300');
+                    fetchCrawlerLogs();
+                } catch (err) {
+                    console.error("Trigger Error:", err);
+                    const errorMsg = err.message === 'Failed to fetch' 
+                        ? '連線被拒 (CORS/網路)' 
+                        : err.message;
+                    setStatusMessage(`❌ 錯誤: ${errorMsg}`);
+                    setStatusColor('text-red-400');
+                    finishCrawler();
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            // ========== 輪詢控制函數 ==========
+            /**
+             * 開始輪詢
+             */
+            const startPolling = () => {
+                startTimeRef.current = Date.now();
+                setCrawlTime(0);
+
+                timerRef.current = setInterval(() => {
+                    setCrawlTime((Date.now() - startTimeRef.current) / 1000);
+                }, CONFIG.TIMER_INTERVAL);
+
+                fetchCrawlerLogs();
+                pollingRef.current = setInterval(
+                    fetchCrawlerLogs, 
+                    CONFIG.POLLING_INTERVAL
+                );
+            };
+
+            /**
+             * 結束爬蟲
+             */
+            const finishCrawler = () => {
+                if (timerRef.current) clearInterval(timerRef.current);
+                if (pollingRef.current) clearInterval(pollingRef.current);
+                setCrawlStatus('completed');
+                setStatusColor('text-emerald-300');
+            };
+
+            // ========== 事件處理函數 ==========
+            /**
+             * 處理按鈕點擊
+             */
             const handleActionClick = (btn) => {
                 if (crawlStatus === 'running') return;
                 setModalConfig({
@@ -353,151 +936,20 @@
                 });
             };
 
-            const confirmExecution = async () => {
-                setModalConfig({ ...modalConfig, isOpen: false });
-                
-                if (crawlStatus === 'running') return;
-                
-                setCrawlStatus('running');
-                setLoading(true);
-                setStatusMessage('🚀 指令發送中...');
-                setStatusColor('text-blue-300');
-                
-                startPolling();
-
-                try {
-                    const payload = { 
-                        action: modalConfig.action,
-                        userId: userProfile?.userId || 'unknown'
-                    };
-
-                    const response = await fetch(CONTROL_WEBHOOK_URL, {
-                        method: 'POST',
-                        headers: { 
-                            'X-App-only-OPEN': API_KEY,
-                            'Content-Type': 'application/json'
-                        },
-                        credentials: 'omit', 
-                        body: JSON.stringify(payload) 
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`啟動失敗: ${response.status} ${response.statusText}`);
-                    }
-                    
-                    finishCrawler();
-
-                    setStatusMessage('✅ 指令已送出');
-                    setStatusColor('text-emerald-300');
-                    
-                    fetchCrawlerLogs();
-                    
-                } catch (err) {
-                    console.error("Trigger Error:", err);
-                    setStatusMessage(`❌ 錯誤: ${err.message === 'Failed to fetch' ? '連線被拒 (CORS/網路)' : err.message}`);
-                    setStatusColor('text-red-400');
-                    finishCrawler();
-                } finally {
-                    setLoading(false);
-                }
-            };
-
-            const fetchCrawlerLogs = async () => {
-                if (isFetchingLogs) return; // 避免重複觸發
-                setIsFetchingLogs(true);
-                
-                try {
-                    const response = await fetch(`${LOGS_WEBHOOK_URL}?t=${new Date().getTime()}`, {
-                        method: 'GET',
-                        headers: { 
-                            'X-App-only-OPEN': API_KEY,
-                            'Content-Type': 'application/json' 
-                        },
-                        credentials: 'omit'
-                    });
-
-                    if (!response.ok) throw new Error("Fetch Logs Error");
-                    const rawData = await response.json();
-
-                    if (Array.isArray(rawData)) {
-                        const logs = rawData.filter(item => item.id).sort((a, b) => b.id - a.id);
-                        const stats = rawData.find(item => item.target_count !== undefined);
-                        const hotels = rawData.filter(item => item.hotel_id && item["飯店名稱"]);
-
-                        const formattedLogs = logs.map(l => ({
-                            id: l.id,
-                            source: "n8n Crawler",
-                            message: l.msg,
-                            status: getStatusFromMsg(l.msg),
-                            time: l.time.split(' ')[1] 
-                        }));
-
-                        setCrawlLogs(formattedLogs);
-                        setCrawlStats(stats);
-                        setCrawlHotels(hotels);
-                        
-                        if (formattedLogs.length > 0 && crawlStatus !== 'running') {
-                            setStatusMessage(formattedLogs[0].message);
-                            setStatusColor('text-white');
-                        }
-                        
-                        if (formattedLogs.length > 0) {
-                            const latestLog = formattedLogs[0];
-                            if (latestLog.message.includes("完畢") || latestLog.message.includes("結束")) {
-                                if (crawlStatus === 'running') finishCrawler();
-                            }
-                        }
-                    }
-                } catch (err) {
-                    console.error("Fetch Logs Error", err);
-                } finally {
-                    setIsFetchingLogs(false); // 結束 Loading
-                }
-            };
-
-            const getStatusFromMsg = (msg) => {
-                if (msg.includes("開始")) return "start";
-                if (msg.includes("結束") || msg.includes("完畢")) return "success";
-                if (msg.includes("清空")) return "warning";
-                return "info";
-            };
-
-            const startPolling = () => {
-                startTimeRef.current = Date.now();
-                setCrawlTime(0);
-                timerRef.current = setInterval(() => {
-                    setCrawlTime((Date.now() - startTimeRef.current) / 1000);
-                }, 100);
-
-                fetchCrawlerLogs();
-                pollingRef.current = setInterval(fetchCrawlerLogs, 2000);
-            };
-
-            const finishCrawler = () => {
-                if (timerRef.current) clearInterval(timerRef.current);
-                if (pollingRef.current) clearInterval(pollingRef.current);
-                setCrawlStatus('completed');
-                setStatusColor('text-emerald-300');
-            };
-
-            useEffect(() => {
-                return () => {
-                    if (timerRef.current) clearInterval(timerRef.current);
-                    if (pollingRef.current) clearInterval(pollingRef.current);
-                };
-            }, []);
-
-            if (!isLiffInit) return (
-                <div className="min-h-screen bg-slate-200 flex items-center justify-center">
-                    <div className="bg-white p-8 rounded-3xl shadow-xl flex flex-col items-center gap-4">
-                        <div className="w-12 h-12 border-4 border-slate-200 border-t-emerald-500 rounded-full animate-spin"></div>
-                        <p className="text-slate-500 font-medium animate-pulse">正在連接 LINE...</p>
+            // ========== 載入畫面 ==========
+            if (!isLiffInit) {
+                return (
+                    <div className="min-h-screen bg-slate-200 flex items-center justify-center">
+                        <div className="bg-white p-8 rounded-3xl shadow-xl flex flex-col items-center gap-4">
+                            <div className="w-12 h-12 border-4 border-slate-200 border-t-emerald-500 rounded-full animate-spin"></div>
+                            <p className="text-slate-500 font-medium animate-pulse">正在連接 LINE...</p>
+                        </div>
                     </div>
-                </div>
-            );
+                );
+            }
 
+            // ========== 主要渲染 ==========
             return (
-                /* 窄版手機版面容器 */
                 <div className="min-h-screen w-full flex justify-center items-start sm:py-10">
                     <div className="w-full max-w-md bg-slate-100 min-h-screen sm:min-h-[850px] sm:h-auto sm:rounded-[2.5rem] shadow-2xl relative overflow-hidden ring-8 ring-slate-900/5 font-sans text-slate-800">
                         
@@ -505,23 +957,53 @@
                         <div className="bg-slate-900 text-white p-6 pb-8 rounded-b-[2.5rem] shadow-lg z-10 sticky top-0">
                             <div className="flex justify-between items-center mb-4">
                                 <div>
-                                    <span className="text-slate-400 text-sm font-bold tracking-widest uppercase">北海道OPEN桑</span>
+                                    <span className="text-slate-400 text-sm font-bold tracking-widest uppercase">
+                                        北海道OPEN桑
+                                    </span>
                                     <h1 className="text-2xl font-bold flex items-center gap-2 mt-1">
                                         爬蟲監控中心
-                                        <div className={`w-3 h-3 rounded-full ${loading || crawlStatus === 'running' ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'}`}></div>
+                                        <div className={`w-3 h-3 rounded-full ${
+                                            loading || crawlStatus === 'running' 
+                                                ? 'bg-yellow-400 animate-pulse' 
+                                                : 'bg-green-400'
+                                        }`}></div>
                                     </h1>
                                 </div>
                                 <div className="w-10 h-10 rounded-full border-2 border-slate-600 overflow-hidden bg-slate-800">
-                                    {userProfile?.pictureUrl ? <img src={userProfile.pictureUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><User size={20}/></div>}
+                                    {userProfile?.pictureUrl ? (
+                                        <img 
+                                            src={userProfile.pictureUrl} 
+                                            className="w-full h-full object-cover" 
+                                            alt="使用者頭像"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center">
+                                            <User size={20} />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
                             {/* Tabs Navigation */}
                             <div className="flex p-1 bg-slate-800 rounded-xl">
-                                <button onClick={() => setActiveTab('monitor')} className={`flex-1 py-3 rounded-lg text-base font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'monitor' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>
+                                <button 
+                                    onClick={() => setActiveTab('monitor')} 
+                                    className={`flex-1 py-3 rounded-lg text-base font-bold flex items-center justify-center gap-2 transition-all ${
+                                        activeTab === 'monitor' 
+                                            ? 'bg-slate-700 text-white shadow-sm' 
+                                            : 'text-slate-400 hover:text-slate-200'
+                                    }`}
+                                >
                                     <FileText size={18} /> 監控日誌
                                 </button>
-                                <button onClick={() => setActiveTab('control')} className={`flex-1 py-3 rounded-lg text-base font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'control' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>
+                                <button 
+                                    onClick={() => setActiveTab('control')} 
+                                    className={`flex-1 py-3 rounded-lg text-base font-bold flex items-center justify-center gap-2 transition-all ${
+                                        activeTab === 'control' 
+                                            ? 'bg-slate-700 text-white shadow-sm' 
+                                            : 'text-slate-400 hover:text-slate-200'
+                                    }`}
+                                >
                                     <Play size={18} /> 啟動任務
                                 </button>
                             </div>
@@ -529,75 +1011,47 @@
 
                         {/* Content Area */}
                         <div className="px-5 pt-10 pb-20 -mt-6 z-0">
-                            
                             {/* 錯誤訊息 */}
-                            {(liffError) && (
+                            {liffError && (
                                 <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded-r flex items-center gap-2">
                                     <WifiOff size={18} />
                                     <span>{liffError}</span>
                                 </div>
                             )}
 
-                            {/* === TAB 1: 監控日誌 (Monitor) === */}
+                            {/* === TAB 1: 監控日誌 === */}
                             {activeTab === 'monitor' && (
                                 <div className="animate-fade-in space-y-5">
-                                    
-                                    {/* 1. 統計摘要卡片 (Stats Summary) */}
-                                    {crawlStats && (
-                                        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden mb-2">
-                                            {/* 頂部載入提示 (當卡片存在且正在載入時顯示微小提示) */}
-                                            {isFetchingLogs && (
-                                                <div className="absolute top-0 left-0 w-full h-1 bg-indigo-500 animate-pulse z-20"></div>
-                                            )}
-                                            
-                                            <div className="absolute top-0 right-0 p-3 opacity-5 pointer-events-none">
-                                                <PieChart size={100} />
-                                            </div>
-                                            <div className="relative z-10">
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <span className="text-slate-500 text-sm font-bold uppercase tracking-wider">本次爬蟲結果</span>
-                                                    <span className={`px-2.5 py-1 rounded text-xs font-bold ${crawlStats.ratio < 0.05 ? 'bg-emerald-100 text-emerald-600' : 'bg-yellow-100 text-yellow-600'}`}>
-                                                        {crawlStats.ratio < 0.05 ? '健康' : '偏高'}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-baseline gap-2">
-                                                    <span className="text-4xl font-extrabold text-slate-800 tracking-tight">{crawlStats.percentage}</span>
-                                                    <span className="text-sm text-slate-400 font-medium">尚未開放</span>
-                                                </div>
-                                                <div className="mt-4 flex gap-6 border-t border-slate-50 pt-4">
-                                                    <div>
-                                                        <p className="text-xs text-slate-400 font-bold uppercase mb-0.5">尚未開放數量</p>
-                                                        <p className="text-lg font-bold text-indigo-600">{crawlStats.target_count.toLocaleString()}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs text-slate-400 font-bold uppercase mb-0.5">總數量</p>
-                                                        <p className="text-lg font-bold text-slate-600">{crawlStats.denominator.toLocaleString()}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* 2. 飯店清單折疊卡片 */}
+                                    <StatsSummaryCard 
+                                        stats={crawlStats} 
+                                        isLoading={isFetchingLogs} 
+                                    />
                                     <HotelListCard hotels={crawlHotels} />
-
-                                    {/* 3. 日誌列表折疊卡片 (新) */}
-                                    <LogsListCard logs={crawlLogs} onRefresh={fetchCrawlerLogs} isLoading={isFetchingLogs} />
+                                    <LogsListCard 
+                                        logs={crawlLogs} 
+                                        onRefresh={fetchCrawlerLogs} 
+                                        isLoading={isFetchingLogs} 
+                                    />
                                 </div>
                             )}
 
-                            {/* === TAB 2: 啟動任務 (Control) === */}
+                            {/* === TAB 2: 啟動任務 === */}
                             {activeTab === 'control' && (
                                 <div className="animate-fade-in space-y-8">
-                                    
                                     {/* 狀態卡片 */}
                                     <div className="bg-slate-900 text-white p-7 rounded-[2rem] shadow-xl relative overflow-hidden">
-                                        <div className="absolute -top-4 -right-4 text-slate-800 opacity-20"><Activity size={160} /></div>
+                                        <div className="absolute -top-4 -right-4 text-slate-800 opacity-20">
+                                            <Activity size={160} />
+                                        </div>
                                         <div className="relative z-10 flex justify-between items-end">
                                             <div className="w-full">
-                                                <span className="text-slate-400 text-sm font-bold uppercase tracking-wider block mb-3">目前狀態</span>
+                                                <span className="text-slate-400 text-sm font-bold uppercase tracking-wider block mb-3">
+                                                    目前狀態
+                                                </span>
                                                 <div className={`text-2xl font-bold leading-snug break-words pr-2 ${statusColor}`}>
-                                                    {crawlStatus === 'running' ? `⏱ ${crawlTime.toFixed(1)}s` : statusMessage}
+                                                    {crawlStatus === 'running' 
+                                                        ? `⏱ ${crawlTime.toFixed(1)}s` 
+                                                        : statusMessage}
                                                 </div>
                                             </div>
                                         </div>
@@ -606,14 +1060,20 @@
                                     {/* 按鈕群組 */}
                                     <div className="space-y-5">
                                         <div className="flex justify-between items-center px-2">
-                                            <span className="text-slate-500 text-sm font-bold uppercase tracking-wider">任務控制面板</span>
+                                            <span className="text-slate-500 text-sm font-bold uppercase tracking-wider">
+                                                任務控制面板
+                                            </span>
                                         </div>
 
                                         {/* 總開關 */}
                                         <button 
                                             onClick={() => handleActionClick(ACTION_BUTTONS[0])}
                                             disabled={crawlStatus === 'running'}
-                                            className={`w-full py-5 rounded-2xl font-bold text-xl text-white shadow-lg flex items-center justify-center gap-3 bg-gradient-to-r ${ACTION_BUTTONS[0].color} active:scale-95 transition-transform ${crawlStatus === 'running' ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-110'}`}
+                                            className={`w-full py-5 rounded-2xl font-bold text-xl text-white shadow-lg flex items-center justify-center gap-3 bg-gradient-to-r ${ACTION_BUTTONS[0].color} active:scale-95 transition-transform ${
+                                                crawlStatus === 'running' 
+                                                    ? 'opacity-50 cursor-not-allowed' 
+                                                    : 'hover:brightness-110'
+                                            }`}
                                         >
                                             <Play size={28} fill="currentColor" />
                                             {ACTION_BUTTONS[0].label}
@@ -626,7 +1086,11 @@
                                                     key={btn.id}
                                                     onClick={() => handleActionClick(btn)}
                                                     disabled={crawlStatus === 'running'}
-                                                    className={`p-5 rounded-2xl flex flex-col items-center justify-center gap-3 shadow-sm font-bold text-base active:scale-95 transition-transform ${btn.color} ${crawlStatus === 'running' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50'}`}
+                                                    className={`p-5 rounded-2xl flex flex-col items-center justify-center gap-3 shadow-sm font-bold text-base active:scale-95 transition-transform ${btn.color} ${
+                                                        crawlStatus === 'running' 
+                                                            ? 'opacity-50 cursor-not-allowed' 
+                                                            : 'hover:bg-slate-50'
+                                                    }`}
                                                 >
                                                     <btn.icon size={28} className="text-slate-400" />
                                                     {btn.label}
@@ -634,52 +1098,31 @@
                                             ))}
                                         </div>
                                     </div>
-                                    
+
                                     <div className="text-center text-slate-400 text-sm px-4 pb-12">
                                         <p>點擊按鈕後需確認才執行。</p>
                                     </div>
                                 </div>
                             )}
-
                         </div>
 
                         {/* Confirmation Modal */}
-                        {modalConfig.isOpen && (
-                            <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-                                <div className="bg-white w-full max-w-xs rounded-[2rem] p-7 shadow-2xl modal-content">
-                                    <div className="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-5 mx-auto">
-                                        <AlertCircle size={32} />
-                                    </div>
-                                    <h3 className="text-xl font-bold text-center text-slate-800 mb-2">確認執行任務？</h3>
-                                    <p className="text-base text-slate-500 text-center mb-8 leading-relaxed">
-                                        您即將執行 <span className="font-bold text-indigo-600 block mt-1">「{modalConfig.title}」</span>
-                                    </p>
-                                    <div className="flex gap-4">
-                                        <button 
-                                            onClick={() => setModalConfig({ ...modalConfig, isOpen: false })}
-                                            className="flex-1 py-3.5 rounded-xl font-bold text-base text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors"
-                                        >
-                                            取消
-                                        </button>
-                                        <button 
-                                            onClick={confirmExecution}
-                                            className="flex-1 py-3.5 rounded-xl font-bold text-base text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
-                                        >
-                                            確定執行
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
+                        <ConfirmationModal
+                            isOpen={modalConfig.isOpen}
+                            title={modalConfig.title}
+                            onConfirm={confirmExecution}
+                            onCancel={() => setModalConfig({ ...modalConfig, isOpen: false })}
+                        />
                     </div>
                 </div>
             );
         };
 
+        // ============================================================================
+        // 🎬 應用程式啟動 (Application Bootstrap)
+        // ============================================================================
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
 </body>
 </html>
-
